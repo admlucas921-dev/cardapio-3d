@@ -75,6 +75,23 @@ export async function signedUrl(path: string | null | undefined): Promise<string
   return data?.signedUrl ?? null;
 }
 
+export function storagePathFromValue(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const marker = `/storage/v1/object/public/${MEDIA_BUCKET}/`;
+  const markerIndex = value.indexOf(marker);
+  if (markerIndex >= 0) {
+    return decodeURIComponent(value.slice(markerIndex + marker.length).split("?")[0]);
+  }
+  if (/^https?:\/\//i.test(value)) return null;
+  return value.replace(/^\/+/, "");
+}
+
+export async function resolveStoredMediaUrl(value: string | null | undefined): Promise<string | null> {
+  if (!value) return null;
+  const path = storagePathFromValue(value);
+  return path ? signedUrl(path) : value;
+}
+
 export async function signedUrlMap(paths: string[]): Promise<Record<string, string>> {
   const unique = Array.from(new Set(paths.filter(Boolean)));
   if (unique.length === 0) return {};
