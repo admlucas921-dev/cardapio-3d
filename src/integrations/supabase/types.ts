@@ -14,16 +14,248 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      categories: {
+        Row: {
+          created_at: string
+          establishment_id: string
+          id: string
+          name: string
+          sort_order: number
+          updated_at: string
+          visible: boolean
+        }
+        Insert: {
+          created_at?: string
+          establishment_id: string
+          id?: string
+          name: string
+          sort_order?: number
+          updated_at?: string
+          visible?: boolean
+        }
+        Update: {
+          created_at?: string
+          establishment_id?: string
+          id?: string
+          name?: string
+          sort_order?: number
+          updated_at?: string
+          visible?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "categories_establishment_id_fkey"
+            columns: ["establishment_id"]
+            isOneToOne: false
+            referencedRelation: "establishments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      establishment_members: {
+        Row: {
+          created_at: string
+          establishment_id: string
+          id: string
+          role: Database["public"]["Enums"]["member_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          establishment_id: string
+          id?: string
+          role?: Database["public"]["Enums"]["member_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          establishment_id?: string
+          id?: string
+          role?: Database["public"]["Enums"]["member_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "establishment_members_establishment_id_fkey"
+            columns: ["establishment_id"]
+            isOneToOne: false
+            referencedRelation: "establishments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      establishments: {
+        Row: {
+          address: string | null
+          business_category: string | null
+          created_at: string
+          id: string
+          logo_url: string | null
+          name: string
+          opening_hours: Json
+          owner_user_id: string
+          phone: string | null
+          slug: string
+          social_links: Json
+          theme: Json
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          business_category?: string | null
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          name: string
+          opening_hours?: Json
+          owner_user_id: string
+          phone?: string | null
+          slug: string
+          social_links?: Json
+          theme?: Json
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          business_category?: string | null
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          name?: string
+          opening_hours?: Json
+          owner_user_id?: string
+          phone?: string | null
+          slug?: string
+          social_links?: Json
+          theme?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      product_media: {
+        Row: {
+          created_at: string
+          establishment_id: string
+          id: string
+          media_type: Database["public"]["Enums"]["media_type"]
+          product_id: string
+          public_url: string
+          sort_order: number
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string
+          establishment_id: string
+          id?: string
+          media_type: Database["public"]["Enums"]["media_type"]
+          product_id: string
+          public_url: string
+          sort_order?: number
+          storage_path: string
+        }
+        Update: {
+          created_at?: string
+          establishment_id?: string
+          id?: string
+          media_type?: Database["public"]["Enums"]["media_type"]
+          product_id?: string
+          public_url?: string
+          sort_order?: number
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_media_establishment_id_fkey"
+            columns: ["establishment_id"]
+            isOneToOne: false
+            referencedRelation: "establishments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_media_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          available: boolean
+          category_id: string | null
+          created_at: string
+          description: string | null
+          establishment_id: string
+          id: string
+          name: string
+          price: number
+          real_depth_cm: number | null
+          real_height_cm: number | null
+          real_width_cm: number | null
+          tags: string[]
+          updated_at: string
+        }
+        Insert: {
+          available?: boolean
+          category_id?: string | null
+          created_at?: string
+          description?: string | null
+          establishment_id: string
+          id?: string
+          name: string
+          price?: number
+          real_depth_cm?: number | null
+          real_height_cm?: number | null
+          real_width_cm?: number | null
+          tags?: string[]
+          updated_at?: string
+        }
+        Update: {
+          available?: boolean
+          category_id?: string | null
+          created_at?: string
+          description?: string | null
+          establishment_id?: string
+          id?: string
+          name?: string
+          price?: number
+          real_depth_cm?: number | null
+          real_height_cm?: number | null
+          real_width_cm?: number | null
+          tags?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_establishment_id_fkey"
+            columns: ["establishment_id"]
+            isOneToOne: false
+            referencedRelation: "establishments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_establishment_member: {
+        Args: { _establishment_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      media_type: "image" | "video_360" | "model_3d"
+      member_role: "admin" | "attendant"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +382,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      media_type: ["image", "video_360", "model_3d"],
+      member_role: ["admin", "attendant"],
+    },
   },
 } as const
