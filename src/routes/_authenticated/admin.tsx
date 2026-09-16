@@ -57,7 +57,7 @@ function AdminPage() {
           <UtensilsCrossed className="mx-auto h-10 w-10 text-amber-400" />
           <h1 className="mt-4 text-2xl font-bold">Conclua seu cadastro</h1>
           <p className="mt-2 text-stone-400">Sua conta ainda não possui um estabelecimento associado.</p>
-          <Link to="/cadastro" className="mt-6 inline-flex rounded-xl bg-amber-400 px-5 py-3 font-bold text-stone-950">Criar estabelecimento</Link>
+          <Link to="/onboarding" className="mt-6 inline-flex rounded-xl bg-amber-400 px-5 py-3 font-bold text-stone-950">Criar estabelecimento</Link>
         </div>
       </main>
     );
