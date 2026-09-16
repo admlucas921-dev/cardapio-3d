@@ -139,7 +139,7 @@ export type Database = {
           id: string
           media_type: Database["public"]["Enums"]["media_type"]
           product_id: string
-          public_url: string
+          public_url: string | null
           sort_order: number
           storage_path: string
         }
@@ -149,7 +149,7 @@ export type Database = {
           id?: string
           media_type: Database["public"]["Enums"]["media_type"]
           product_id: string
-          public_url: string
+          public_url?: string | null
           sort_order?: number
           storage_path: string
         }
@@ -159,7 +159,7 @@ export type Database = {
           id?: string
           media_type?: Database["public"]["Enums"]["media_type"]
           product_id?: string
-          public_url?: string
+          public_url?: string | null
           sort_order?: number
           storage_path?: string
         }
