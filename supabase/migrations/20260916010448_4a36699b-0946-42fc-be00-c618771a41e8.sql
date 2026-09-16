@@ -1,0 +1,1 @@
+ALTER TABLE public.product_media ALTER COLUMN public_url DROP NOT NULL;
