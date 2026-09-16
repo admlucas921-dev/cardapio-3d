@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.is_establishment_member(uuid) FROM anon, PUBLIC;
