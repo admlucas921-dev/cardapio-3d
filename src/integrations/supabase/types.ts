@@ -248,6 +248,36 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_establishment_with_owner: {
+        Args: {
+          _address?: string
+          _business_category?: string
+          _name: string
+          _phone?: string
+          _slug: string
+        }
+        Returns: {
+          address: string | null
+          business_category: string | null
+          created_at: string
+          id: string
+          logo_url: string | null
+          name: string
+          opening_hours: Json
+          owner_user_id: string
+          phone: string | null
+          slug: string
+          social_links: Json
+          theme: Json
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "establishments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       is_establishment_member: {
         Args: { _establishment_id: string }
         Returns: boolean
