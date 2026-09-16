@@ -142,3 +142,27 @@
     color: var(--color-foreground);
   }
 }
+
+@layer components {
+  .field {
+    width: 100%;
+    border-radius: 0.75rem;
+    border: 1px solid rgb(255 255 255 / 0.1);
+    background: rgb(255 255 255 / 0.055);
+    padding: 0.75rem 1rem;
+    color: white;
+    outline: none;
+  }
+  .field:focus { border-color: rgb(251 191 36 / 0.7); box-shadow: 0 0 0 4px rgb(251 191 36 / 0.1); }
+  .field option { background: #1c1917; }
+  .primary, .secondary, .icon-danger {
+    display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+    border-radius: .75rem; padding: .72rem 1rem; font-size: .875rem; transition: .2s;
+  }
+  .primary { background: linear-gradient(90deg,#fbbf24,#f97316); color: #1c1917; font-weight: 700; }
+  .primary:hover { filter: brightness(1.08); transform: translateY(-1px); }
+  .primary:disabled { opacity: .55; }
+  .secondary { border: 1px solid rgb(255 255 255 / .12); background: rgb(255 255 255 / .05); color: #e7e5e4; }
+  .icon-danger { border: 1px solid rgb(239 68 68 / .2); background: rgb(239 68 68 / .08); color: #fca5a5; padding: .72rem; }
+  label { font-size: .875rem; color: #d6d3d1; }
+}
