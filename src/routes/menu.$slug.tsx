@@ -1,13 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Box, Clock3, MapPin, Search, UtensilsCrossed, X } from "lucide-react";
-import { createElement, useMemo, useState } from "react";
+import { Box, Clock3, MapPin, Minus, Plus, Search, ShoppingBag, UtensilsCrossed, X } from "lucide-react";
+import { createElement, useMemo, useState, type FormEvent } from "react";
+import { toast } from "sonner";
 
 import {
   fetchCategories,
   fetchEstablishmentBySlug,
   fetchMediaByEstablishment,
   fetchProducts,
+  placeOrder,
   type Product,
 } from "@/lib/api";
 import { formatBRL } from "@/lib/format";
@@ -21,6 +23,8 @@ function PublicMenu() {
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState("all");
   const [selected, setSelected] = useState<Product | null>(null);
+  const [cart, setCart] = useState<Record<string, number>>({});
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
   const establishmentQuery = useQuery({
     queryKey: ["public-establishment", slug],
     queryFn: () => fetchEstablishmentBySlug(slug),
@@ -53,6 +57,7 @@ function PublicMenu() {
       ),
     [menuQuery.data, categoryId, search],
   );
+  const cartCount = Object.values(cart).reduce((sum, quantity) => sum + quantity, 0);
   if (establishmentQuery.isLoading)
     return (
       <div className="grid min-h-screen place-items-center bg-[#100b08] text-amber-400">
@@ -193,7 +198,20 @@ function PublicMenu() {
           media={data.media.filter((m) => m.product_id === selected.id)}
           urls={data.urls}
           close={() => setSelected(null)}
+          add={() => {
+            setCart((current) => ({ ...current, [selected.id]: (current[selected.id] ?? 0) + 1 }));
+            setSelected(null);
+            toast.success("Produto adicionado ao pedido.");
+          }}
         />
+      )}
+      {cartCount > 0 && (
+        <button onClick={() => setCheckoutOpen(true)} className="fixed bottom-5 right-5 z-40 flex items-center gap-3 rounded-2xl bg-[var(--brand)] px-5 py-4 font-bold text-stone-950 shadow-2xl shadow-black/50">
+          <ShoppingBag className="h-5 w-5" />Ver pedido <span className="rounded-full bg-stone-950 px-2 py-0.5 text-xs text-white">{cartCount}</span>
+        </button>
+      )}
+      {checkoutOpen && data && (
+        <CheckoutModal establishmentId={establishment.id} products={data.products} cart={cart} setCart={setCart} close={() => setCheckoutOpen(false)} />
       )}
     </main>
   );
@@ -204,11 +222,13 @@ function ProductModal({
   media,
   urls,
   close,
+  add,
 }: {
   product: Product;
   media: NonNullable<ReturnType<typeof useQuery>["data"]>[] | any[];
   urls: Record<string, string>;
   close: () => void;
+  add: () => void;
 }) {
   const model = media.find((m) => m.media_type === "model_3d");
   const video = media.find((m) => m.media_type === "video_360");
@@ -290,8 +310,27 @@ function ProductModal({
               </p>
             </div>
           )}
+          <button onClick={add} className="mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-amber-400 font-bold text-stone-950"><ShoppingBag className="h-5 w-5" />Adicionar ao pedido</button>
         </div>
       </article>
     </div>
   );
+}
+
+function CheckoutModal({ establishmentId, products, cart, setCart, close }: { establishmentId: string; products: Product[]; cart: Record<string, number>; setCart: React.Dispatch<React.SetStateAction<Record<string, number>>>; close: () => void }) {
+  const [sending, setSending] = useState(false);
+  const items = products.filter(product => (cart[product.id] ?? 0) > 0);
+  const total = items.reduce((sum, product) => sum + Number(product.price) * cart[product.id], 0);
+  const change = (id: string, delta: number) => setCart(current => { const next = Math.max(0, (current[id] ?? 0) + delta); const updated = { ...current }; if (next) updated[id] = next; else delete updated[id]; return updated; });
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    setSending(true);
+    try {
+      await placeOrder({ establishmentId, customerName: String(data.get("customer_name")), tableNumber: String(data.get("table_number") || ""), notes: String(data.get("notes") || ""), items: items.map(product => ({ product_id: product.id, quantity: cart[product.id] })) });
+      setCart({}); close(); toast.success("Pedido enviado para a cozinha!");
+    } catch (error) { toast.error(error instanceof Error ? error.message : "Não foi possível enviar o pedido."); }
+    finally { setSending(false); }
+  }
+  return <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 grid place-items-end bg-black/75 backdrop-blur-sm sm:place-items-center sm:p-5" onClick={close}><form onSubmit={submit} onClick={event => event.stopPropagation()} className="max-h-[92vh] w-full max-w-xl overflow-auto rounded-t-3xl border border-white/10 bg-stone-950 p-6 sm:rounded-3xl"><div className="flex items-center justify-between"><div><p className="text-xs uppercase tracking-widest text-amber-400">Finalizar</p><h2 className="text-2xl font-bold">Seu pedido</h2></div><button type="button" onClick={close} className="rounded-full bg-white/10 p-2"><X /></button></div><div className="mt-5 space-y-3">{items.map(product => <div key={product.id} className="flex items-center justify-between gap-3 rounded-xl border border-white/10 p-3"><div><strong>{product.name}</strong><p className="text-sm text-stone-500">{formatBRL(Number(product.price) * cart[product.id])}</p></div><div className="flex items-center gap-3"><button type="button" onClick={() => change(product.id, -1)} className="rounded-lg bg-white/10 p-2"><Minus className="h-4 w-4" /></button><b>{cart[product.id]}</b><button type="button" onClick={() => change(product.id, 1)} className="rounded-lg bg-white/10 p-2"><Plus className="h-4 w-4" /></button></div></div>)}</div><div className="mt-5 grid gap-4 sm:grid-cols-2"><label className="sm:col-span-2">Seu nome<input name="customer_name" required minLength={2} className="field mt-1" /></label><label>Mesa ou comanda<input name="table_number" className="field mt-1" placeholder="Ex.: Mesa 8" /></label><label>Observações<input name="notes" className="field mt-1" placeholder="Ex.: sem cebola" /></label></div><div className="mt-6 flex items-center justify-between border-t border-white/10 pt-5"><div><p className="text-xs text-stone-500">Total</p><strong className="text-xl text-amber-400">{formatBRL(total)}</strong></div><button disabled={sending || items.length === 0} className="primary">{sending ? "Enviando…" : "Enviar para a cozinha"}</button></div></form></div>;
 }
