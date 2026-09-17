@@ -15,6 +15,7 @@ import { Route as CadastroRouteImport } from './routes/cadastro'
 import { Route as RecuperarSenhaRouteImport } from './routes/recuperar-senha'
 import { Route as RedefinirSenhaRouteImport } from './routes/redefinir-senha'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedCozinhaRouteImport } from './routes/_authenticated/cozinha'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as MenuSlugRouteImport } from './routes/menu.$slug'
 
@@ -47,6 +48,11 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedCozinhaRoute = AuthenticatedCozinhaRouteImport.update({
+  id: '/cozinha',
+  path: '/cozinha',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
@@ -64,6 +70,7 @@ export interface FileRoutesByFullPath {
   '/recuperar-senha': typeof RecuperarSenhaRoute
   '/redefinir-senha': typeof RedefinirSenhaRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/cozinha': typeof AuthenticatedCozinhaRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/menu/$slug': typeof MenuSlugRoute
 }
@@ -73,6 +80,7 @@ export interface FileRoutesByTo {
   '/recuperar-senha': typeof RecuperarSenhaRoute
   '/redefinir-senha': typeof RedefinirSenhaRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/cozinha': typeof AuthenticatedCozinhaRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/menu/$slug': typeof MenuSlugRoute
 }
@@ -84,6 +92,7 @@ export interface FileRoutesById {
   '/recuperar-senha': typeof RecuperarSenhaRoute
   '/redefinir-senha': typeof RedefinirSenhaRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/_authenticated/cozinha': typeof AuthenticatedCozinhaRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/menu/$slug': typeof MenuSlugRoute
 }
@@ -95,6 +104,7 @@ export interface FileRouteTypes {
     | '/recuperar-senha'
     | '/redefinir-senha'
     | '/admin'
+    | '/cozinha'
     | '/onboarding'
     | '/menu/$slug'
   fileRoutesByTo: FileRoutesByTo
@@ -104,6 +114,7 @@ export interface FileRouteTypes {
     | '/recuperar-senha'
     | '/redefinir-senha'
     | '/admin'
+    | '/cozinha'
     | '/onboarding'
     | '/menu/$slug'
   id:
@@ -114,6 +125,7 @@ export interface FileRouteTypes {
     | '/recuperar-senha'
     | '/redefinir-senha'
     | '/_authenticated/admin'
+    | '/_authenticated/cozinha'
     | '/_authenticated/onboarding'
     | '/menu/$slug'
   fileRoutesById: FileRoutesById
@@ -171,6 +183,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/cozinha': {
+      id: '/_authenticated/cozinha'
+      path: '/cozinha'
+      fullPath: '/cozinha'
+      preLoaderRoute: typeof AuthenticatedCozinhaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/onboarding': {
       id: '/_authenticated/onboarding'
       path: '/onboarding'
@@ -190,11 +209,13 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
+  AuthenticatedCozinhaRoute: typeof AuthenticatedCozinhaRoute
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
+  AuthenticatedCozinhaRoute: AuthenticatedCozinhaRoute,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
 }
 
