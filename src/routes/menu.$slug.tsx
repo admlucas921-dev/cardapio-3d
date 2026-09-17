@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Box, Clock3, MapPin, Minus, Plus, Search, ShoppingBag, UtensilsCrossed, X } from "lucide-react";
-import { createElement, useMemo, useState, type FormEvent } from "react";
+import { Bell, Box, Check, Clock3, Flame, MapPin, Minus, Plus, Search, ShoppingBag, UtensilsCrossed, X } from "lucide-react";
+import { createElement, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 
 import {
@@ -9,6 +9,7 @@ import {
   fetchEstablishmentBySlug,
   fetchMediaByEstablishment,
   fetchProducts,
+  fetchOrderStatus,
   placeOrder,
   type Product,
 } from "@/lib/api";
@@ -25,11 +26,34 @@ function PublicMenu() {
   const [selected, setSelected] = useState<Product | null>(null);
   const [cart, setCart] = useState<Record<string, number>>({});
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
+  const previousStatus = useRef<string | null>(null);
   const establishmentQuery = useQuery({
     queryKey: ["public-establishment", slug],
     queryFn: () => fetchEstablishmentBySlug(slug),
   });
   const establishment = establishmentQuery.data;
+  useEffect(() => {
+    if (!establishment) return;
+    setActiveOrderId(localStorage.getItem(`active-order:${establishment.id}`));
+  }, [establishment]);
+  const orderStatusQuery = useQuery({
+    queryKey: ["customer-order-status", activeOrderId],
+    enabled: !!activeOrderId,
+    queryFn: () => fetchOrderStatus(activeOrderId!),
+    refetchInterval: 5_000,
+  });
+  useEffect(() => {
+    const order = orderStatusQuery.data;
+    if (!order || previousStatus.current === order.status) return;
+    if (previousStatus.current) {
+      const messages: Record<string, string> = { preparing: "Seu pedido está em preparo!", ready: "Seu pedido está pronto!", completed: "Pedido entregue. Bom apetite!", cancelled: "O pedido foi cancelado." };
+      const message = messages[order.status] ?? "O andamento do seu pedido foi atualizado.";
+      toast.info(message);
+      if ("Notification" in window && Notification.permission === "granted") new Notification("Cardápio 3D", { body: message });
+    }
+    previousStatus.current = order.status;
+  }, [orderStatusQuery.data]);
   const logoQuery = useQuery({
     queryKey: ["establishment-logo", establishment?.logo_url],
     enabled: !!establishment?.logo_url,
@@ -121,6 +145,7 @@ function PublicMenu() {
         </div>
       </header>
       <section className="mx-auto max-w-5xl px-4 py-6">
+        {orderStatusQuery.data && <OrderTracker order={orderStatusQuery.data} clear={() => { if (establishment) localStorage.removeItem(`active-order:${establishment.id}`); setActiveOrderId(null); previousStatus.current = null; }} />}
         <div className="relative">
           <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-stone-500" />
           <input
@@ -211,7 +236,7 @@ function PublicMenu() {
         </button>
       )}
       {checkoutOpen && data && (
-        <CheckoutModal establishmentId={establishment.id} products={data.products} cart={cart} setCart={setCart} close={() => setCheckoutOpen(false)} />
+        <CheckoutModal establishmentId={establishment.id} products={data.products} cart={cart} setCart={setCart} close={() => setCheckoutOpen(false)} onPlaced={(id) => { localStorage.setItem(`active-order:${establishment.id}`, id); previousStatus.current = "new"; setActiveOrderId(id); if ("Notification" in window && Notification.permission === "default") Notification.requestPermission(); }} />
       )}
     </main>
   );
@@ -317,7 +342,7 @@ function ProductModal({
   );
 }
 
-function CheckoutModal({ establishmentId, products, cart, setCart, close }: { establishmentId: string; products: Product[]; cart: Record<string, number>; setCart: React.Dispatch<React.SetStateAction<Record<string, number>>>; close: () => void }) {
+function CheckoutModal({ establishmentId, products, cart, setCart, close, onPlaced }: { establishmentId: string; products: Product[]; cart: Record<string, number>; setCart: React.Dispatch<React.SetStateAction<Record<string, number>>>; close: () => void; onPlaced: (id: string) => void }) {
   const [sending, setSending] = useState(false);
   const items = products.filter(product => (cart[product.id] ?? 0) > 0);
   const total = items.reduce((sum, product) => sum + Number(product.price) * cart[product.id], 0);
@@ -327,10 +352,22 @@ function CheckoutModal({ establishmentId, products, cart, setCart, close }: { es
     const data = new FormData(event.currentTarget);
     setSending(true);
     try {
-      await placeOrder({ establishmentId, customerName: String(data.get("customer_name")), tableNumber: String(data.get("table_number") || ""), notes: String(data.get("notes") || ""), items: items.map(product => ({ product_id: product.id, quantity: cart[product.id] })) });
+      const orderId = await placeOrder({ establishmentId, customerName: String(data.get("customer_name")), tableNumber: String(data.get("table_number") || ""), notes: String(data.get("notes") || ""), items: items.map(product => ({ product_id: product.id, quantity: cart[product.id] })) });
+      onPlaced(orderId);
       setCart({}); close(); toast.success("Pedido enviado para a cozinha!");
     } catch (error) { toast.error(error instanceof Error ? error.message : "Não foi possível enviar o pedido."); }
     finally { setSending(false); }
   }
   return <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 grid place-items-end bg-black/75 backdrop-blur-sm sm:place-items-center sm:p-5" onClick={close}><form onSubmit={submit} onClick={event => event.stopPropagation()} className="max-h-[92vh] w-full max-w-xl overflow-auto rounded-t-3xl border border-white/10 bg-stone-950 p-6 sm:rounded-3xl"><div className="flex items-center justify-between"><div><p className="text-xs uppercase tracking-widest text-amber-400">Finalizar</p><h2 className="text-2xl font-bold">Seu pedido</h2></div><button type="button" onClick={close} className="rounded-full bg-white/10 p-2"><X /></button></div><div className="mt-5 space-y-3">{items.map(product => <div key={product.id} className="flex items-center justify-between gap-3 rounded-xl border border-white/10 p-3"><div><strong>{product.name}</strong><p className="text-sm text-stone-500">{formatBRL(Number(product.price) * cart[product.id])}</p></div><div className="flex items-center gap-3"><button type="button" onClick={() => change(product.id, -1)} className="rounded-lg bg-white/10 p-2"><Minus className="h-4 w-4" /></button><b>{cart[product.id]}</b><button type="button" onClick={() => change(product.id, 1)} className="rounded-lg bg-white/10 p-2"><Plus className="h-4 w-4" /></button></div></div>)}</div><div className="mt-5 grid gap-4 sm:grid-cols-2"><label className="sm:col-span-2">Seu nome<input name="customer_name" required minLength={2} className="field mt-1" /></label><label>Mesa ou comanda<input name="table_number" className="field mt-1" placeholder="Ex.: Mesa 8" /></label><label>Observações<input name="notes" className="field mt-1" placeholder="Ex.: sem cebola" /></label></div><div className="mt-6 flex items-center justify-between border-t border-white/10 pt-5"><div><p className="text-xs text-stone-500">Total</p><strong className="text-xl text-amber-400">{formatBRL(total)}</strong></div><button disabled={sending || items.length === 0} className="primary">{sending ? "Enviando…" : "Enviar para a cozinha"}</button></div></form></div>;
+}
+
+function OrderTracker({ order, clear }: { order: import("@/lib/api").CustomerOrderStatus; clear: () => void }) {
+  const steps = [
+    { key: "new", label: "Recebido", icon: Bell },
+    { key: "preparing", label: "Em preparo", icon: Flame },
+    { key: "ready", label: "Pronto", icon: Check },
+  ];
+  const index = steps.findIndex(step => step.key === order.status);
+  const finished = order.status === "completed" || order.status === "cancelled";
+  return <aside className="mb-6 rounded-2xl border border-amber-400/20 bg-amber-400/[0.06] p-4"><div className="flex items-start justify-between gap-3"><div><p className="text-xs uppercase tracking-widest text-amber-400">Pedido #{order.order_number}</p><h2 className="mt-1 text-lg font-bold">{order.status === "completed" ? "Pedido entregue" : order.status === "cancelled" ? "Pedido cancelado" : "Acompanhe seu pedido"}</h2></div>{finished && <button onClick={clear} className="text-sm text-stone-400 hover:text-white">Fechar</button>}</div>{!finished && <div className="mt-5 grid grid-cols-3 gap-2">{steps.map((step, stepIndex) => { const Icon = step.icon; const active = stepIndex <= index; return <div key={step.key} className={`rounded-xl border p-3 text-center text-xs ${active ? "border-amber-400/40 bg-amber-400/10 text-amber-200" : "border-white/10 text-stone-600"}`}><Icon className="mx-auto mb-2 h-5 w-5" />{step.label}</div>; })}</div>}<p className="mt-3 text-xs text-stone-500">Esta tela atualiza automaticamente.</p></aside>;
 }
