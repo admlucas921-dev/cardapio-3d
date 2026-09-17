@@ -5,6 +5,7 @@ import {
   Eye,
   FolderOpen,
   LayoutDashboard,
+  ChefHat,
   LogOut,
   Palette,
   Plus,
@@ -154,6 +155,10 @@ function AdminPage() {
             <Eye className="h-4 w-4" />
             Ver cardápio público
           </a>
+          <Link to="/cozinha" className="flex items-center gap-2 text-amber-400">
+            <ChefHat className="h-4 w-4" />
+            Abrir painel da cozinha
+          </Link>
           <button
             onClick={async () => {
               await supabase.auth.signOut();
