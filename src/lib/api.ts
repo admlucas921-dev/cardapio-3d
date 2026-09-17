@@ -49,6 +49,10 @@ export type ProductMedia = {
   sort_order: number;
 };
 
+export type OrderStatus = "new" | "preparing" | "ready" | "completed" | "cancelled";
+export type OrderItem = { id: string; order_id: string; product_id: string | null; product_name: string; quantity: number; unit_price: number | string; notes: string | null };
+export type KitchenOrder = { id: string; establishment_id: string; order_number: number; customer_name: string; table_number: string | null; notes: string | null; status: OrderStatus; total: number | string; created_at: string; updated_at: string; order_items: OrderItem[] };
+
 function unwrap<T>(res: { data: T | null; error: { message: string } | null }): T {
   if (res.error) throw new Error(res.error.message);
   return res.data as T;
@@ -239,5 +243,34 @@ export async function updateMedia(id: string, patch: Partial<ProductMedia>) {
 
 export async function deleteMedia(id: string) {
   const { error } = await supabase.from("product_media").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+/* ---------------- pedidos e cozinha ---------------- */
+
+export async function placeOrder(input: { establishmentId: string; customerName: string; tableNumber?: string; notes?: string; items: { product_id: string; quantity: number }[] }): Promise<string> {
+  const { data, error } = await (supabase.rpc as any)("place_order", {
+    _establishment_id: input.establishmentId,
+    _customer_name: input.customerName,
+    _table_number: input.tableNumber ?? "",
+    _notes: input.notes ?? "",
+    _items: input.items,
+  });
+  if (error) throw new Error(error.message);
+  return data as string;
+}
+
+export async function fetchKitchenOrders(establishmentId: string): Promise<KitchenOrder[]> {
+  const { data, error } = await (supabase.from("orders" as any) as any)
+    .select("*, order_items(*)")
+    .eq("establishment_id", establishmentId)
+    .in("status", ["new", "preparing", "ready"])
+    .order("created_at", { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as KitchenOrder[];
+}
+
+export async function updateOrderStatus(id: string, status: OrderStatus): Promise<void> {
+  const { error } = await (supabase.from("orders" as any) as any).update({ status }).eq("id", id);
   if (error) throw new Error(error.message);
 }
