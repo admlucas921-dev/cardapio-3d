@@ -52,6 +52,7 @@ export type ProductMedia = {
 export type OrderStatus = "new" | "preparing" | "ready" | "completed" | "cancelled";
 export type OrderItem = { id: string; order_id: string; product_id: string | null; product_name: string; quantity: number; unit_price: number | string; notes: string | null };
 export type KitchenOrder = { id: string; establishment_id: string; order_number: number; customer_name: string; table_number: string | null; notes: string | null; status: OrderStatus; total: number | string; created_at: string; updated_at: string; order_items: OrderItem[] };
+export type CustomerOrderStatus = { order_id: string; order_number: number; status: OrderStatus; customer_name: string; table_number: string | null; total: number | string; created_at: string; updated_at: string };
 
 function unwrap<T>(res: { data: T | null; error: { message: string } | null }): T {
   if (res.error) throw new Error(res.error.message);
@@ -258,6 +259,12 @@ export async function placeOrder(input: { establishmentId: string; customerName:
   });
   if (error) throw new Error(error.message);
   return data as string;
+}
+
+export async function fetchOrderStatus(orderId: string): Promise<CustomerOrderStatus | null> {
+  const { data, error } = await (supabase.rpc as any)("get_order_status", { _order_id: orderId });
+  if (error) throw new Error(error.message);
+  return ((data ?? [])[0] ?? null) as CustomerOrderStatus | null;
 }
 
 export async function fetchKitchenOrders(establishmentId: string): Promise<KitchenOrder[]> {
